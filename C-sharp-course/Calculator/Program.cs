@@ -119,7 +119,7 @@ namespace Calculater
                 ++forcheck;
                 return true;
             }
-            Console.WriteLine("Two operands in a row: {0} and {1} without an operator}", Nums[Nums.Count - 1], CurrOperand);   // 1 + 1.25  25
+            Console.WriteLine("Two operands in a row: {0} and {1} without an operator", Nums[Nums.Count - 1], CurrOperand);   // 1 + 1.25  25
             IsValid = false;
             return false;
         }
