@@ -9,44 +9,56 @@ namespace Calculater
 {
     class Program
     {
-        static void getMult_Divval(ref int i, char op, ref string Expr, ref List<string> Nums, out string CurrOperand, ref bool IsValid)
+        //Tries to evaluate the operations with high precedence, in this case: multiplications and divisions 
+        static bool CalcOperswithHigherPrecedence(ref List<double> operandsWithValue, ref List<char> operators)
         {
-            if (Expr[i] == '(' || char.IsNumber(Expr[i]))
+            
+            for (int i = 0; i < operators.Count; ++i)
             {
-                double Opnd1 = Calculate(Nums[Nums.Count - 1], ref IsValid);
-                double Opnd2 = 0;
-                if (IsValid)
+                if (operators[i] == '*')
                 {
-                    getOperand(ref i, ref Expr, out CurrOperand, ref IsValid);
-                    if (IsValid)
-                    {
-                        Opnd2 = Calculate(CurrOperand, ref IsValid);
-                        if (IsValid)
-                        {
-                            if (op == '*')
-                            {
-                                Nums[Nums.Count - 1] = (Opnd1 * Opnd2).ToString();
-                                return;
-                            }
-                            if (Opnd2 == 0)
-                            {
-                                Console.WriteLine("Cannot divide by zero");
-                                IsValid = false;
-                                return;
-                            }
-                            Nums[Nums.Count - 1] = (Opnd1 / Opnd2).ToString();
-                            return;
-                        }
-                    }
+                    operandsWithValue[i] *= operandsWithValue[i + 1];
+                    operandsWithValue.RemoveAt(i + 1);
+                    operators.RemoveAt(i);
+                    continue;
                 }
-                CurrOperand = "-1";
-                return;
+                if (operators[i] == '/')
+                {
+                    if (operandsWithValue[i+1] == 0)
+                    {
+                        Console.WriteLine("Cannot divide by zero");
+                        return false;
+                    }
+                    operandsWithValue[i] /= operandsWithValue[i + 1];
+                    operandsWithValue.RemoveAt(i + 1);
+                    operators.RemoveAt(i);
+                    continue;
+                }
             }
-            CurrOperand = "-1";
-            Console.WriteLine("Invalid character: {0}", Expr[i]);   // 5 + 6 * -1;
-            IsValid = false;
+            return true;
         }
-        static void getNumber(ref int i, ref string Expr, out string CurrOperand, ref bool IsValid)
+
+        //Tries to convert operand from string to number
+        //At this stage all the expressions in parentheses, that were added to the list "operands" with the help of funtion "GetOperandwithParentheses"
+        //will be calculated
+        static bool ConvetToNumericValues(List<string> operands, out List<double> operandsWithValues)
+        {
+            operandsWithValues = new List<double>();
+            for (int i = 0; i < operands.Count; ++i)
+            {
+                double value;
+                if (TryCalculate(operands[i], out value))
+                {
+                    operandsWithValues.Add(value);
+                    continue;
+                }
+                return false;
+            }
+            return true;
+        }
+
+        //Tries to get number from the expression, starting from index i
+        static bool GetNumbericOperand(ref int i, string Expr, out string CurrOperand)
         {
             double CurrNum = 0;
             int FirsIndex = i;
@@ -59,14 +71,16 @@ namespace Calculater
             if (double.TryParse(Expr.Substring(FirsIndex, i - FirsIndex), out CurrNum))
             {
                 CurrOperand = Convert.ToString(CurrNum);
-                return;
+                return true;
             }
 
             Console.WriteLine("wrong format for the number: {0}", Expr.Substring(FirsIndex, i - FirsIndex));   // 1.25. or 1.25.3
-            IsValid = false;
-            CurrOperand = "-1";
+            CurrOperand = default(string);
+            return false;
         }
-        static void getOperwithparentheses(ref int i, ref string Expr, out string CurrOperand, ref bool IsValid)
+
+        //Tries to get expression in parentheses, starting from index i
+        static bool GetOperandwithParentheses(ref int i, string Expr, out string CurrOperand)
         {
             int Qnt = 1;
             int FirsIndex = i;
@@ -89,146 +103,148 @@ namespace Calculater
             {
                 if (CurrOperand.Length > 0)
                 {
-                    return;
+                    return true;
                 }
                 Console.WriteLine("Empty parentheses");   // 5 + (())
-                IsValid = false;
-                CurrOperand = "-1";
-                return;
+                CurrOperand = default(string);
+                return false;
             }
-            Console.WriteLine("Wrong formatting in {0}", Expr.Substring(FirsIndex , i - FirsIndex));   //10 *(7 + 50 / (7+9)
-            IsValid = false;
-            CurrOperand = "-1";
+
+            Console.WriteLine("Wrong formatting in {0}", Expr.Substring(FirsIndex, i - FirsIndex));   //10 *(7 + 50 / (7+9)
+            CurrOperand = default(string);
+            return false;
         }
-        static void getOperand(ref int i, ref string Expr, out string CurrOperand, ref bool IsValid)
+
+        //Tries to get current operand from the expression, starting from index i
+        // As I consider two types of operands: numbers and expressions in parentheses, this function has two subfunctions
+        //1. GetNumbericOperand
+        //2. GetOperandwithParentheses
+        static bool GetOperand(ref int i, string Expr, out string currOperand)
         {
             if (char.IsNumber(Expr[i]))
             {
-                getNumber(ref i, ref Expr, out CurrOperand, ref IsValid);
-                return;
+                if (GetNumbericOperand(ref i, Expr, out currOperand))
+                {
+                    return true;
+                }
+                return false;
             }
-            getOperwithparentheses(ref i, ref Expr, out CurrOperand, ref IsValid);
-            return;
-        }
-
-        static bool AddOperand(ref int forcheck, ref List<string> Nums, ref string CurrOperand, ref bool IsValid)
-        {
-            if (forcheck == 0)
+            if (GetOperandwithParentheses(ref i, Expr, out currOperand))
             {
-                Nums.Add(CurrOperand);
-                ++forcheck;
                 return true;
             }
-            Console.WriteLine("Two operands in a row: {0} and {1} without an operator", Nums[Nums.Count - 1], CurrOperand);   // 1 + 1.25  25
-            IsValid = false;
             return false;
         }
-        static double Calculate(string Expr, ref bool IsValid)
+
+
+        //checks if the given expression is valid, extracts operands and operators from the expression. 
+        //As there can be expressions in pharenthesis, the list of operands in this function is of type string
+        static bool ProcessExpression(string Expr, out List<string> operands, out List<char> operators)
         {
-            double Val;
-            if (double.TryParse(Expr, out Val))
-            {
-                return Val;
-            }
-            List<string> Nums = new List<string>();
-            List<char> Opers = new List<char>();
-            int forcheck = 0;  // must be 0 || 1
+            operands = new List<string>();
+            operators = new List<char>();
+            //for validity check, must be 0 || 1 -> before every operator the value should be 1 and before every operator the value should be 0
+            int forcheck = 0;
 
             for (int i = 0; i < Expr.Length;)
             {
-                string CurrOperand;
-                if (char.IsNumber(Expr[i]))
+                string currOperand;
+
+                if (char.IsNumber(Expr[i]) || Expr[i] == '(')
                 {
-                    getOperand(ref i, ref Expr, out CurrOperand, ref IsValid);
-                    if (!(IsValid && AddOperand(ref forcheck, ref Nums, ref CurrOperand, ref IsValid)))
+                    if (GetOperand(ref i, Expr, out currOperand))
                     {
-                        return -1;
-                    }
+                        if (forcheck == 0)
+                        {
+                            operands.Add(currOperand);
+                            ++forcheck;
+                            continue;
+                        }
+                        Console.WriteLine("Two operands in a row: {0} and {1} without an operator", operands[operands.Count - 1], currOperand);   // 1 + 1.25  25
+                        return false;
+                    }                    
+                    return false;
                 }
                 else if (Expr[i] == ' ') // considering spaces valid
                 {
                     ++i;
                     continue;
                 }
-                else if (Expr[i] == '+' || Expr[i] == '-')
+                else if (Expr[i] == '+' || Expr[i] == '-' || Expr[i] == '*' || Expr[i] == '/')
                 {
                     if (i == 0)
                     {
-                        Nums.Add("0");
+                        operands.Add("0");
                         ++forcheck;
                     }
                     if (forcheck == 1)
                     {
-                        Opers.Add(Expr[i]);
+                        operators.Add(Expr[i]);
                         --forcheck;
                         ++i;
                         continue;
                     }
 
-                    Console.WriteLine("Two operators in a row: {0} and {1} without an operand", Opers[Opers.Count - 1], Expr[i]);   // 1 + 1.25 -  *
-                    IsValid = false;
-                    return -1;
-
-                }
-                else if (Expr[i] == '*' || Expr[i] == '/')
-                {
-                    char op = Expr[i];
-                    if (i == 0)
-                    {
-                        Nums.Add("0");
-                        ++forcheck;
-                    }
-                    ++i;
-                    while (Expr[i] == ' ')
-                    {
-                        ++i;
-                    }
-                    getMult_Divval(ref i, op, ref Expr, ref Nums, out CurrOperand, ref IsValid);
-                    if (!IsValid)
-                    {
-                        return -1;
-                    }
-                }
-                else if (Expr[i] == '(')
-                {
-                    getOperand(ref i, ref Expr, out CurrOperand, ref IsValid);
-                    if (!(IsValid && AddOperand(ref forcheck, ref Nums, ref CurrOperand, ref IsValid)))
-                    {
-                        return -1;
-                    }
+                    Console.WriteLine("Two operators in a row: {0} and {1} without an operand", operators[operators.Count - 1], Expr[i]);   // 1 + 1.25 -  *
+                    return false;
                 }
                 else  // ) + 5, or other invalid char
                 {
                     Console.WriteLine("Invalid character: {0}", Expr[i]);   // 5 + 6 );  ^ & ...
-                    IsValid = false;
-                    return -1;
+                    return false;
                 }
             }
-            if (Opers.Count + 1 == Nums.Count)
+            return true;
+        }
+        //Indicates if it is possible to calculate the given expression
+            //1. tries to process the expression, 2. if expression is valid, tries to convert already extracted operands to their numeric values,
+            //3. calculates operations with higher precedence, 4. calculates the final value of the expression
+        //Assigns calculated value to the out parameter "value"
+        static bool TryCalculate(string Expr, out double value)
+        {
+            if (double.TryParse(Expr, out value))
             {
-                Val = Calculate(Nums[0], ref IsValid);
-                for (int i = 0; i < Opers.Count; ++i)
+                return true;
+            }
+            List<string> operands;
+            List<char> operators;
+            List<double> operandsWithValues;
+
+            if (ProcessExpression(Expr, out operands, out operators))
+            {
+                if (operators.Count + 1 == operands.Count)
                 {
-                    if (Opers[i] == '+')
+                    if (ConvetToNumericValues(operands, out operandsWithValues))
                     {
-                        Val += Calculate(Nums[i + 1], ref IsValid);
-                        continue;
+                        if (CalcOperswithHigherPrecedence(ref operandsWithValues, ref operators))
+                        {
+                            value = operandsWithValues[0];
+                            for (int i = 0; i < operators.Count; ++i)
+                            {
+                                if (operators[i] == '+')
+                                {
+                                    value += operandsWithValues[i+1];
+                                    continue;
+                                }
+                                value -= operandsWithValues[i+1];
+                            }
+                            return true;
+                        }
                     }
-                    Val -= Calculate(Nums[i + 1], ref IsValid);
                 }
             }
-            return Val;
+            value = default(double);
+            return false;
         }
         static void Main(string[] args)
         {
             while (true)
             {
-                string Expression = Console.ReadLine();
-                bool IsValid = true;
-                double FinalVal = Calculate(Expression, ref IsValid);
-                if (IsValid)
+                string expression = Console.ReadLine();
+                double valexpression;
+                if (TryCalculate(expression, out valexpression))
                 {
-                    Console.WriteLine("Expression equals to : {0}", FinalVal);
+                    Console.WriteLine("Expression equals to : {0}", valexpression);
                 }
             }
         }
