@@ -8,7 +8,7 @@ namespace CalculatorWithClasses
     {
         public string Expression { get; }
         public bool ExpressionIsValid { get; private set; }
-        public double ExpressionValue { get; }
+        public double ExpressionValue { get; private set; }
         public bool DivisioByZero { get; private set; }
         bool GeterrorMessages { get; set; }
         List<double> Operands { get; set; }
