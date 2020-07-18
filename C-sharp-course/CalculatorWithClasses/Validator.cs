@@ -49,17 +49,42 @@ namespace CalculatorWithClasses
                 }
                 if (Expression[i] == '(')
                 {
-                    ++QntOfParentheses;
+                    QntOfParentheses = 1;
+                    int FirsIndex = i;
                     ++i;
-                    continue;
-                }
-                if (Expression[i] == ')')
-                {
-                    if (QntOfParentheses > 0)
+                    while (i < Expression.Length && QntOfParentheses != 0)
                     {
-                        --QntOfParentheses;
+                        if (Expression[i] == '(')
+                        {
+                            ++QntOfParentheses;
+                        }
+                        else if (Expression[i] == ')')
+                        {
+                            --QntOfParentheses;
+                        }
                         ++i;
-                        continue;
+                    }
+                    if (QntOfParentheses == 0)
+                    {
+                        string OperandWithParentheses = Expression.Substring(FirsIndex + 1, i - FirsIndex - 2);
+                        if (OperandWithParentheses.Length > 0)
+                        {
+                            if (!Validator.ValidateArithmeticExpression(OperandWithParentheses, printerrors))
+                                return false;
+
+                            if (forcheck == 0)
+                            {
+                                ++forcheck;
+                                continue;
+                            }
+                            if (printerrors) Console.WriteLine("Two operands in a row without an operator");   // 1 (1.25 + 25)
+                            return false;
+                        }
+                        else
+                        {
+                            if (printerrors) Console.WriteLine("Empty parentheses");   // 5 + (())
+                            return false;
+                        }
                     }
                     if (printerrors) Console.WriteLine("Invalid use of parentheses");   // 5 + 6 );  ^ & ...
                     return false;
@@ -68,12 +93,6 @@ namespace CalculatorWithClasses
                 if (printerrors) Console.WriteLine("Invalid character: {0}", Expression[i]);   // 5 + 6 );  ^ & ...
                 return false;
             }
-            if (QntOfParentheses != 0)
-            {
-                if (printerrors) Console.WriteLine("Invalid use of parentheses");   // 5 + 6 );  ^ & ...
-                return false;
-            }
-            //if (printerrors) Console.WriteLine("Expression is valid");
             return true;
         }
     }

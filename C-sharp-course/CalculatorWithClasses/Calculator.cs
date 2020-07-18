@@ -8,7 +8,7 @@ namespace CalculatorWithClasses
     {
         public string Expression { get; }
         public bool ExpressionIsValid { get; private set; }
-        public double ExpressionValue { get; private set; }
+        public double ExpressionValue { get;  }
         public bool DivisioByZero { get; private set; }
         bool GeterrorMessages { get; set; }
         List<double> Operands { get; set; }
@@ -39,11 +39,12 @@ namespace CalculatorWithClasses
                 }
                 if (Expression[i] == '(')
                 {
-                    Operands.Add(new Calculator(StringProcessor.ExtractExprationInParentheses(ref i, Expression),GeterrorMessages).ExpressionValue);
+                    Operands.Add(new Calculator(StringProcessor.ExtractExprationInParentheses(ref i, Expression),GeterrorMessages, false).ExpressionValue);
                     continue;
                 }
                 if (Expression[i] != ' ')
                 {
+                    if (i == 0) Operands.Add(0);
                     Operators.Add(Expression[i]);
                     ++i;
                     continue;
